@@ -1,0 +1,10 @@
+#!/bin/sh
+
+cd frp
+export FRP_LATEST_VERSION=`git tag --sort=v:refname | grep '^v' | tail -n1 | tr -d v`
+cd ..
+
+docker tag $DOCKER_REPO:v$FRP_LATEST_VERSION $IMAGE_NAME
+
+docker push $DOCKER_REPO:v$FRP_LATEST_VERSION
+docker push $IMAGE_NAME
