@@ -1,14 +1,23 @@
 FROM alpine
 
-RUN apk --no-cache add curl jq && \
-    FRP_RELEASE_DATA=$(curl https://api.github.com/repos/fatedier/frp/releases/latest | jq -r '.assets[] | select(.name | contains("linux_amd64"))') && \
-    FRP_TARBALL_FILE=$(echo $FRP_RELEASE_DATA | jq -r '.name') && \
-    echo $FRP_RELEASE_DATA | jq -r '.browser_download_url' | xargs curl -LO && \
-    apk --no-cache del curl jq && \
-    tar zxf $FRP_TARBALL_FILE && \
-    rm -f $FRP_TARBALL_FILE && \
-    mv $(basename $FRP_TARBALL_FILE .tar.gz) /usr/local/frp && \
-    cp /usr/local/frp/frps_full.ini /etc/frps.ini
+ARG VERSION
+ARG BUILD_DATE
+ARG VCS_REF
+
+LABEL version=$VERSION \
+      org.label-schema.name="frps" \
+      org.label-schema.version=$VERSION \
+      org.label-schema.url="https://github.com/fatedier/frp" \
+      org.label-schema.description="A fast reverse proxy to help you expose a local server behind a NAT or firewall to the internet." \
+      org.label-schema.build_date=$BUILD_DATE \
+      org.label-schema.vcs-url="https://github.com/fatedier/frp.git" \
+      org.label-schema.vcs-ref=$VCS_REF \
+      org.label-schema.schema-version="1.0" \
+      org.label-schema.docker.cmd="docker run -d --name frps --restart=always -p 7000:7000 -p 7000:7000/udp -p 7001:7001/udp -v /path/to/frps.ini:/etc/frps.ini leonismoe/frps"
+
+COPY --chown=root:root frp_${VERSION}_linux_amd64 /usr/local/frp
+
+RUN ln -s /usr/local/frp/frps_full.ini /etc/frps.ini
 
 EXPOSE 80/tcp 443/tcp 3001/tcp 3001/udp 3003/tcp 3003/udp 7000/tcp 7000/udp 7001/udp 7500/tcp
 
