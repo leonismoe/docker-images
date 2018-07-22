@@ -1,5 +1,8 @@
 FROM alpine
 
+COPY --chown=root:root frp_linux /usr/local/frp/
+RUN ln -s /usr/local/frp/frpc.ini /etc/frpc.ini
+
 ARG VERSION
 ARG BUILD_DATE
 ARG VCS_REF
@@ -14,9 +17,5 @@ LABEL version=$VERSION \
       org.label-schema.vcs-ref=$VCS_REF \
       org.label-schema.schema-version="1.0" \
       org.label-schema.docker.cmd="docker run -d --name frpc --restart=always -v /path/to/frpc.ini:/etc/frpc.ini leonismoe/frpc"
-
-COPY --chown=root:root frp_${VERSION}_linux_amd64 /usr/local/frp
-
-RUN ln -s /usr/local/frp/frpc.ini /etc/frpc.ini
 
 CMD ["/usr/local/frp/frpc", "-c", "/etc/frpc.ini"]

@@ -1,25 +1,51 @@
 #!/bin/sh
 
+set -e
+
 export FRP_DOCKER_IMAGE_BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"`
 
-echo '* Downloading frp source code...'
-git clone https://github.com/fatedier/frp.git
 cd frp
 export FRP_LATEST_VERSION=`git tag --sort=v:refname | grep '^v' | tail -n1 | tr -d v`
 export FRP_VCS_REF=`git rev-list --abbrev-commit -1 v$FRP_LATEST_VERSION`
-echo "* Latest frp version is v$FRP_LATEST_VERSION, git commit is $FRP_VCS_REF"
 cd ..
 
-echo "* Downloading prebuilt frp (v$FRP_LATEST_VERSION) binaries..."
-curl -LO https://github.com/fatedier/frp/releases/download/v${FRP_LATEST_VERSION}/frp_${FRP_LATEST_VERSION}_linux_amd64.tar.gz
-tar zxf frp_${FRP_LATEST_VERSION}_linux_amd64.tar.gz
-rm -f frp_${FRP_LATEST_VERSION}_linux_amd64/frpc*
 
-echo "* Now building frpc:v$FRP_LATEST_VERSION..."
 
-docker build --pull \
-             --tag $DOCKER_REPO:v$FRP_LATEST_VERSION \
-             --build-arg BUILD_DATE=$FRP_DOCKER_IMAGE_BUILD_DATE \
-             --build-arg VCS_REF=$FRP_VCS_REF \
-             --build-arg VERSION=$FRP_LATEST_VERSION \
-             .
+echo "* Now building frps:v$FRP_LATEST_VERSION..."
+sed 's#^RUN ln -s /usr/local/frp/#COPY --chown=root:root frp_linux/#' Dockerfile > Dockerfile.build
+
+export DOCKER_BUILD_OPTS="--build-arg BUILD_DATE=$FRP_DOCKER_IMAGE_BUILD_DATE --build-arg VCS_REF=$FRP_VCS_REF --build-arg VERSION=$FRP_LATEST_VERSION"
+if [ ! -z "$DOCKERFILE_PATH" ]; then
+    export DOCKER_BUILD_OPTS="--file $DOCKERFILE_PATH $DOCKER_BUILD_OPTS"
+fi
+
+build_frp_docker_image() {
+    PREFIX=$1
+    ARCH=$2
+    sed "s#^FROM alpine#FROM $PREFIX/alpine#" Dockerfile.build > Dockerfile
+    sed -i "s#frp_linux#frp_${FRP_LATEST_VERSION}_linux_${ARCH}#g" Dockerfile
+    docker build --pull -t $DOCKER_REPO:$PREFIX-v$FRP_LATEST_VERSION $DOCKER_BUILD_OPTS .
+    docker tag $DOCKER_REPO:$PREFIX-v$FRP_LATEST_VERSION $DOCKER_REPO:$PREFIX-latest
+    rm -rf frp_${FRP_LATEST_VERSION}_linux_${ARCH}
+}
+
+echo "* Building for x86_64 and amd64..."
+mv frp_${FRP_LATEST_VERSION}_linux_amd64 frp_linux
+docker build --pull -t $DOCKER_REPO:v$FRP_LATEST_VERSION $DOCKER_BUILD_OPTS .
+docker tag $DOCKER_REPO:v$FRP_LATEST_VERSION $DOCKER_REPO:x86_64-v$FRP_LATEST_VERSION
+docker tag $DOCKER_REPO:v$FRP_LATEST_VERSION $DOCKER_REPO:x86_64-latest
+docker tag $DOCKER_REPO:v$FRP_LATEST_VERSION $DOCKER_REPO:amd64-v$FRP_LATEST_VERSION
+docker tag $DOCKER_REPO:v$FRP_LATEST_VERSION $DOCKER_REPO:amd64-latest
+rm -rf frp_linux
+
+echo "* Building for x86..."
+build_frp_docker_image i386 386
+
+echo "* Building for arm..."
+build_frp_docker_image arm32v6 arm
+
+echo "* Building for arm64..."
+build_frp_docker_image arm64v8 arm64
+
+rm -f Dockerfile.build
+git checkout -- Dockerfile

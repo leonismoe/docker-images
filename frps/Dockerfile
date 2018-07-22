@@ -1,5 +1,8 @@
 FROM alpine
 
+COPY --chown=root:root frp_linux /usr/local/frp/
+RUN ln -s /usr/local/frp/frps_full.ini /etc/frps.ini
+
 ARG VERSION
 ARG BUILD_DATE
 ARG VCS_REF
@@ -14,10 +17,6 @@ LABEL version=$VERSION \
       org.label-schema.vcs-ref=$VCS_REF \
       org.label-schema.schema-version="1.0" \
       org.label-schema.docker.cmd="docker run -d --name frps --restart=always -p 7000:7000 -p 7000:7000/udp -p 7001:7001/udp -v /path/to/frps.ini:/etc/frps.ini leonismoe/frps"
-
-COPY --chown=root:root frp_${VERSION}_linux_amd64 /usr/local/frp
-
-RUN ln -s /usr/local/frp/frps_full.ini /etc/frps.ini
 
 EXPOSE 80/tcp 443/tcp 3001/tcp 3001/udp 3003/tcp 3003/udp 7000/tcp 7000/udp 7001/udp 7500/tcp
 

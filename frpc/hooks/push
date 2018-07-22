@@ -6,5 +6,20 @@ cd ..
 
 docker tag $DOCKER_REPO:v$FRP_LATEST_VERSION $IMAGE_NAME
 
+docker push $DOCKER_REPO:x86_64-v$FRP_LATEST_VERSION
+docker push $DOCKER_REPO:x86_64-latest
+
+docker push $DOCKER_REPO:amd64-v$FRP_LATEST_VERSION
+docker push $DOCKER_REPO:amd64-latest
+
+docker push $DOCKER_REPO:i386-v$FRP_LATEST_VERSION
+docker push $DOCKER_REPO:i386-latest
+
+docker push $DOCKER_REPO:arm32v6-v$FRP_LATEST_VERSION
+docker push $DOCKER_REPO:arm32v6-latest
+
+docker push $DOCKER_REPO:arm64v8-v$FRP_LATEST_VERSION
+docker push $DOCKER_REPO:arm64v8-latest
+
 docker push $DOCKER_REPO:v$FRP_LATEST_VERSION
 docker push $IMAGE_NAME

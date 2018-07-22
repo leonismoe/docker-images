@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -e
+
+echo '* Downloading frp source code...'
+git clone https://github.com/fatedier/frp.git
+cd frp
+export FRP_LATEST_VERSION=`git tag --sort=v:refname | grep '^v' | tail -n1 | tr -d v`
+export FRP_VCS_REF=`git rev-list --abbrev-commit -1 v$FRP_LATEST_VERSION`
+cd ..
+
+echo "* Latest frp version is v$FRP_LATEST_VERSION, git commit is $FRP_VCS_REF"
+sed -i "s/\${VERSION}/v$FRP_LATEST_VERSION/g" README.md
+sed -i "s#leonismoe/frps\.svg#leonismoe/frps:v$FRP_LATEST_VERSION.svg#g" README.md
