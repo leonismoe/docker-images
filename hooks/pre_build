@@ -1,0 +1,8 @@
+#!/bin/sh
+
+set -e
+
+. hooks/_env.sh
+
+echo "* Downloading prebuilt AriaNG:$ARIANG_VERSION..."
+wget https://github.com/mayswind/AriaNg/releases/download/$ARIANG_VERSION/aria-ng-$ARIANG_VERSION.zip

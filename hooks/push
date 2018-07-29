@@ -1,0 +1,11 @@
+#!/bin/sh
+
+. hooks/_env.sh
+
+docker push $DOCKER_REPO:$ARIANG_VERSION
+docker push $DOCKER_REPO:i386-$ARIANG_VERSION
+
+if [ "$ARIANG_VERSION" = "$ARIANG_LATEST_VERSION" ]; then
+    docker push $DOCKER_REPO:i386-latest
+    docker push $DOCKER_REPO:latest
+fi

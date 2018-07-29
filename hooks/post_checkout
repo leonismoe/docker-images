@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -e
+
+echo '* Downloading AriaNG source code...'
+git clone https://github.com/mayswind/AriaNg.git
+
+. hooks/_env.sh
+
+echo "* Latest stable AriaNG version is $ARIANG_LATEST_VERSION"
+echo "* Currently AriaNG version is $ARIANG_VERSION, git commit is $ARIANG_VCS_REF"

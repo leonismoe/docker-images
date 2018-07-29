@@ -1,0 +1,21 @@
+#!/bin/sh
+
+set -e
+
+ARIANG_DOCKER_IMAGE_BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"`
+. hooks/_env.sh
+
+echo '* Now building airang:$ARIANG_VERSION...'
+cp Dockerfile Dockerfile.build
+
+echo '  * Building for x86_64...'
+docker build --pull -t $DOCKER_REPO:$ARIANG_VERSION $DOCKER_BUILD_OPTS .
+
+echo '  * Building for i386...'
+sed 's#^FROM alpine$#FROM i386/alpine#' Dockerfile.build > Dockerfile
+docker build --pull -t $DOCKER_REPO:i386-$ARIANG_VERSION $DOCKER_BUILD_OPTS .
+
+if [ "$ARIANG_VERSION" = "$ARIANG_LATEST_VERSION" ]; then
+    docker tag $DOCKER_REPO:$ARIANG_VERSION $DOCKER_REPO:latest
+    docker tag $DOCKER_REPO:i386-$ARIANG_VERSION $DOCKER_REPO:i386-latest
+fi
