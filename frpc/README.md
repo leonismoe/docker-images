@@ -7,17 +7,11 @@ A fast reverse proxy to help you expose a local server behind a NAT or firewall 
 
 ## Supported architectures
 * `x86_64`, `amd64`
-* `i386`
-* `arm32v6`
-* `arm64v8`
+* `i386` (Tags are prefixed with `i386-`)
+* `arm32v6` (Tags are prefixed with `arm32v6-`)
+* `arm64v8` (Tags are prefixed with `arm64v8-`)
 
-## Latest tags
-* `x86_64-${VERSION}`, `amd64-${VERSION}`, `x86_64-latest`, `amd64-latest`, `${VERSION}`, `latest`
-* `i386-${VERSION}`, `i386-latest`
-* `arm32v6-${VERSION}`, `arm32v6-latest`
-* `arm64v8-${VERSION}`, `arm64v8-latest`
-
-# Run
+# Usage
 ``` sh
 docker run -d --name frpc --restart=always -v /path/to/frpc.ini:/etc/frpc.ini leonismoe/frpc
 ```

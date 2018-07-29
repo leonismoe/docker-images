@@ -1,25 +1,24 @@
 #!/bin/sh
 
-cd frp
-export FRP_LATEST_VERSION=`git tag --sort=v:refname | grep '^v' | tail -n1 | tr -d v`
-cd ..
+set -e
+. ../scripts/_env.sh
 
-docker tag $DOCKER_REPO:v$FRP_LATEST_VERSION $IMAGE_NAME
+docker push $DOCKER_REPO:v$FRP_VERSION
 
-docker push $DOCKER_REPO:x86_64-v$FRP_LATEST_VERSION
-docker push $DOCKER_REPO:x86_64-latest
+if [ "$FRP_VERSION" = "$FRP_LATEST_VERSION" ]; then
+    docker tag $DOCKER_REPO:v$FRP_VERSION $DOCKER_REPO:latest
+    docker push $DOCKER_REPO:latest
+fi
 
-docker push $DOCKER_REPO:amd64-v$FRP_LATEST_VERSION
-docker push $DOCKER_REPO:amd64-latest
+push_docker_image_by_arch() {
+    ARCH=$1
+    docker push $DOCKER_REPO:$ARCH-v$FRP_VERSION
+    if [ "$FRP_VERSION" = "$FRP_LATEST_VERSION" ]; then
+        docker tag $DOCKER_REPO:$ARCH-v$FRP_VERSION $DOCKER_REPO:$ARCH-latest
+        docker push $DOCKER_REPO:$ARCH-latest
+    fi
+}
 
-docker push $DOCKER_REPO:i386-v$FRP_LATEST_VERSION
-docker push $DOCKER_REPO:i386-latest
-
-docker push $DOCKER_REPO:arm32v6-v$FRP_LATEST_VERSION
-docker push $DOCKER_REPO:arm32v6-latest
-
-docker push $DOCKER_REPO:arm64v8-v$FRP_LATEST_VERSION
-docker push $DOCKER_REPO:arm64v8-latest
-
-docker push $DOCKER_REPO:v$FRP_LATEST_VERSION
-docker push $IMAGE_NAME
+push_docker_image_by_arch i386
+push_docker_image_by_arch arm32v6
+push_docker_image_by_arch arm64v8

@@ -8,6 +8,7 @@ ARG BUILD_DATE
 ARG VCS_REF
 
 LABEL version=$VERSION \
+      maintainer="Leonismoe <leonismoe@gmail.com>" \
       org.label-schema.name="frpc" \
       org.label-schema.version=$VERSION \
       org.label-schema.url="https://github.com/fatedier/frp" \

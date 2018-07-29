@@ -2,20 +2,17 @@
 
 set -e
 
-cd frp
-export FRP_LATEST_VERSION=`git tag --sort=v:refname | grep '^v' | tail -n1 | tr -d v`
-cd ..
+. ../scripts/_env.sh
 
-
-
-echo "* Downloading prebuilt frp (v$FRP_LATEST_VERSION) binaries..."
+echo "* Downloading prebuilt frp (v$FRP_VERSION)..."
 download_frp() {
     ARCH=$1
     echo "  * Downloading $ARCH..."
-    curl -LO https://github.com/fatedier/frp/releases/download/v${FRP_LATEST_VERSION}/frp_${FRP_LATEST_VERSION}_linux_${ARCH}.tar.gz
-    tar zxf frp_${FRP_LATEST_VERSION}_linux_${ARCH}.tar.gz
-    rm -f frp_${FRP_LATEST_VERSION}_linux_${ARCH}/frps*
+    curl -LO https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_${FRP_VERSION}_linux_${ARCH}.tar.gz
+    tar zxf frp_${FRP_VERSION}_linux_${ARCH}.tar.gz
+    rm -f frp_${FRP_VERSION}_linux_${ARCH}/frpc*
 }
+
 download_frp 386
 download_frp amd64
 download_frp arm
