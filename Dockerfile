@@ -1,12 +1,16 @@
-FROM alpine AS build-stage
+FROM node:8 AS build-stage
 
 ARG VERSION
 
-COPY aria-ng-$VERSION.zip aria-ng.zip
-
 RUN set -xe \
-    && apk add p7zip \
-    && 7za x aria-ng.zip -oaria-ng
+    && git clone https://github.com/mayswind/AriaNg.git \
+    && cd AriaNg \
+    && git checkout $VERSION \
+    && node -v \
+    && npm -v \
+    && npm install -g gulp-cli \
+    && npm install \
+    && gulp clean build
 
 
 FROM alpine
@@ -18,7 +22,7 @@ RUN set -xe  \
     && ln -sf /dev/stderr /var/log/nginx/error.log
 
 COPY --chown=root:root nginx-ariang.conf /etc/nginx/conf.d/default.conf
-COPY --chown=nginx:www-data --from=build-stage aria-ng/ /usr/share/nginx/html/
+COPY --chown=nginx:www-data --from=build-stage /AriaNg/dist/ /usr/share/nginx/html/
 
 ARG VERSION
 ARG BUILD_DATE
