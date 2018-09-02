@@ -7,10 +7,19 @@ RUN set -xe \
     && cd AriaNg \
     && git checkout $VERSION \
     && node -v \
-    && npm -v \
+    && npm -v
+
+WORKDIR /AriaNg
+
+RUN set -xe \
+    && [ -f bower.json ] \
+    && npm install -g bower \
+    && bower install --allow-root
+
+RUN set -xe \
     && npm install -g gulp-cli \
     && npm install \
-    && gulp clean build
+    && gulp build
 
 
 FROM alpine
