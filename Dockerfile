@@ -1,4 +1,4 @@
-FROM node:8 AS build-stage
+FROM node:10 AS build-stage
 
 ARG VERSION
 
@@ -11,10 +11,10 @@ RUN set -xe \
 
 WORKDIR /AriaNg
 
-RUN set -xe \
-    && [ -f bower.json ] \
+RUN [ -f bower.json ] \
     && npm install -g bower \
-    && bower install --allow-root
+    && bower install --allow-root \
+    || true
 
 RUN set -xe \
     && npm install -g gulp-cli \
