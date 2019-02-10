@@ -1,7 +1,9 @@
-FROM alpine
+FROM scratch
 
-COPY --chown=root:root frp_linux /usr/local/frp/
-RUN ln -s /usr/local/frp/frps_full.ini /etc/frps.ini
+# see `hooks` and `base/Dockerfile` for details
+COPY --chown=root:root frp-builds/amd64/frps /
+COPY --chown=root:root frp-builds/static /static
+COPY --chown=root:root frp-builds/conf/frps_full.ini /etc/frps.ini
 
 ARG VERSION
 ARG BUILD_DATE
@@ -21,4 +23,4 @@ LABEL version=$VERSION \
 
 EXPOSE 80/tcp 443/tcp 3001/tcp 3001/udp 3003/tcp 3003/udp 7000/tcp 7000/udp 7001/udp 7500/tcp
 
-CMD ["/usr/local/frp/frps", "-c", "/etc/frps.ini"]
+CMD ["/frps", "-c", "/etc/frps.ini"]

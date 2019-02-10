@@ -2,36 +2,47 @@
 
 set -e
 
-FRP_DOCKER_IMAGE_BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"`
-. ../scripts/_env.sh
+BUILD_DIR=frp-builds
 
+mkdir $BUILD_DIR
 
-echo "* Now building frpc:v$FRP_VERSION..."
-sed 's#^RUN ln -s /usr/local/frp/#COPY --chown=root:root frp_linux/#' Dockerfile > Dockerfile.build
+docker build --pull -t frpc-temp ./base
+docker run --rm -v $BUILD_DIR:/frp-builds frpc-temp 'cp -r $DIST_ROOT/* /frp-builds/'
+docker rmi frpc-temp
 
-build_frp_docker_image() {
+export BUILD_DATE=`cat $BUILD_DIR/.BUILD_DATE`
+export VERSION=`cat $BUILD_DIR/.VERSION`
+export VCS_REF=`cat $BUILD_DIR/.VCS_REF`
+
+export DOCKER_BUILD_OPTS="--build-arg BUILD_DATE=$BUILD_DATE --build-arg VCS_REF=$VCS_REF --build-arg VERSION=$VERSION"
+if [ ! -z "$DOCKERFILE_PATH" ]; then
+    export DOCKER_BUILD_OPTS="--file $DOCKERFILE_PATH $DOCKER_BUILD_OPTS"
+fi
+
+echo "* Now building frpc:v$VERSION..."
+cp Dockerfile Dockerfile.original
+
+build_docker_image() {
     PREFIX=$1
     ARCH=$2
-    sed "s#^FROM alpine#FROM $PREFIX/alpine#" Dockerfile.build > Dockerfile
-    sed -i "s#frp_linux#frp_${FRP_VERSION}_linux_${ARCH}#g" Dockerfile
-    docker build --pull -t $DOCKER_REPO:$PREFIX-v$FRP_VERSION $DOCKER_BUILD_OPTS .
-    docker tag $DOCKER_REPO:$PREFIX-v$FRP_VERSION $DOCKER_REPO:$PREFIX-latest
-    rm -rf frp_${FRP_VERSION}_linux_${ARCH}
+    sed "s#frp-builds#$BUILD_DIR#" Dockerfile.original > Dockerfile
+    sed -i "s/amd64/$arch/" Dockerfile
+    docker build -t $DOCKER_REPO:$PREFIX-v$VERSION $DOCKER_BUILD_OPTS .
 }
 
-echo "* Building for x86_64 and amd64..."
-mv frp_${FRP_VERSION}_linux_amd64 frp_linux
-docker build --pull -t $DOCKER_REPO:v$FRP_VERSION $DOCKER_BUILD_OPTS .
-rm -rf frp_linux
+echo
+echo "* Building docker image for amd64..."
+docker build -t $DOCKER_REPO:v$VERSION $DOCKER_BUILD_OPTS .
 
-echo "* Building for x86..."
-build_frp_docker_image i386 386
+echo
+echo "* Building docker image for i386..."
+build_docker_image i386 386
 
-echo "* Building for arm..."
-build_frp_docker_image arm32v6 arm
+for arch in 'arm arm64 mips64 mips64le mips mipsle'; do
+    echo
+    echo "* Building docker image for $arch..."
+    build_docker_image $arch $arch
+done
 
-echo "* Building for arm64..."
-build_frp_docker_image arm64v8 arm64
-
-rm -f Dockerfile.build
-git checkout -- Dockerfile
+mv -f Dockerfile.original Dockerfile
+rm -rf $BUILD_DIR

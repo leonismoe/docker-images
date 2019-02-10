@@ -1,7 +1,8 @@
-FROM alpine
+FROM scratch
 
-COPY --chown=root:root frp_linux /usr/local/frp/
-RUN ln -s /usr/local/frp/frpc.ini /etc/frpc.ini
+# see `hooks` and `base/Dockerfile` for details
+COPY --chown=root:root frp-builds/amd64/frpc /
+COPY --chown=root:root frp-builds/conf/frpc.ini /etc/frpc.ini
 
 ARG VERSION
 ARG BUILD_DATE
@@ -19,4 +20,4 @@ LABEL version=$VERSION \
       org.label-schema.schema-version="1.0" \
       org.label-schema.docker.cmd="docker run -d --name frpc --restart=always -v /path/to/frpc.ini:/etc/frpc.ini leonismoe/frpc"
 
-CMD ["/usr/local/frp/frpc", "-c", "/etc/frpc.ini"]
+CMD ["/frpc", "-c", "/etc/frpc.ini"]

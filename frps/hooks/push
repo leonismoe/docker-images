@@ -1,24 +1,27 @@
 #!/bin/sh
 
 set -e
-. ../scripts/_env.sh
 
-docker push $DOCKER_REPO:v$FRP_VERSION
+BUILD_DIR=frp-builds
+export LATEST_VERSION=`cat $BUILD_DIR/.LATEST_VERSION`
+export VERSION=`cat $BUILD_DIR/.VERSION`
 
-if [ "$FRP_VERSION" = "$FRP_LATEST_VERSION" ]; then
-    docker tag $DOCKER_REPO:v$FRP_VERSION $DOCKER_REPO:latest
+docker push $DOCKER_REPO:v$VERSION
+
+if [ "$VERSION" = "$LATEST_VERSION" ]; then
+    docker tag $DOCKER_REPO:v$VERSION $DOCKER_REPO:latest
     docker push $DOCKER_REPO:latest
+    docker rmi $DOCKER_REPO:latest > /dev/null
 fi
 
-push_docker_image_by_arch() {
-    ARCH=$1
-    docker push $DOCKER_REPO:$ARCH-v$FRP_VERSION
-    if [ "$FRP_VERSION" = "$FRP_LATEST_VERSION" ]; then
-        docker tag $DOCKER_REPO:$ARCH-v$FRP_VERSION $DOCKER_REPO:$ARCH-latest
-        docker push $DOCKER_REPO:$ARCH-latest
-    fi
-}
+docker rmi $DOCKER_REPO:v$VERSION > /dev/null
 
-push_docker_image_by_arch i386
-push_docker_image_by_arch arm32v6
-push_docker_image_by_arch arm64v8
+for arch in 'i386 arm arm64 mips64 mips64le mips mipsle'; do
+    docker push $DOCKER_REPO:$arch-v$VERSION
+    if [ "$VERSION" = "$LATEST_VERSION" ]; then
+        docker tag $DOCKER_REPO:$arch-v$VERSION $DOCKER_REPO:$arch-latest
+        docker push $DOCKER_REPO:$arch-latest
+        docker rmi $DOCKER_REPO:$arch-latest > /dev/null
+    fi
+    docker rmi $DOCKER_REPO:$arch-v$VERSION > /dev/null
+done
