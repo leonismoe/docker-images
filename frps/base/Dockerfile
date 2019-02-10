@@ -13,6 +13,7 @@ RUN apt-get update \
     && export LATEST_VERSION=`git tag --sort=v:refname | grep '^v' | tail -n1 | tr -d v` \
     && export VERSION="${VERSION:-$LATEST_VERSION}" \
     && export VCS_REF=`git rev-list --abbrev-commit -1 v$VERSION` \
+    && git checkout v$VERSION \
     && export BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
     && export CGO_ENABLED=0 \
     && export GOOS=linux \
