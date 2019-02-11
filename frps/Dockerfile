@@ -1,9 +1,9 @@
 FROM scratch
 
 # see `hooks` and `base/Dockerfile` for details
-COPY --chown=root:root frp-builds/amd64/frps /
-COPY --chown=root:root frp-builds/static /static
-COPY --chown=root:root frp-builds/conf/frps_full.ini /etc/frps.ini
+COPY frp-builds/amd64/frps /
+COPY frp-builds/static /static
+COPY frp-builds/conf/frps_full.ini /etc/frps.ini
 
 ARG VERSION
 ARG BUILD_DATE

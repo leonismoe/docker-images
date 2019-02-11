@@ -16,7 +16,8 @@ fi
 
 docker rmi $DOCKER_REPO:v$VERSION > /dev/null
 
-for arch in 'i386 arm arm64 mips64 mips64le mips mipsle'; do
+arch_all='i386 arm arm64 mips64 mips64le mips mipsle'
+for arch in $arch_all; do
     docker push $DOCKER_REPO:$arch-v$VERSION
     if [ "$VERSION" = "$LATEST_VERSION" ]; then
         docker tag $DOCKER_REPO:$arch-v$VERSION $DOCKER_REPO:$arch-latest
@@ -25,3 +26,5 @@ for arch in 'i386 arm arm64 mips64 mips64le mips mipsle'; do
     fi
     docker rmi $DOCKER_REPO:$arch-v$VERSION > /dev/null
 done
+
+rm -rf $BUILD_DIR

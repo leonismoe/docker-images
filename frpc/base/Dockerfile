@@ -6,8 +6,7 @@ ENV GOPATH=/go \
     SRC_ROOT=$GOPATH/src/github.com/fatedier/frp \
     DIST_ROOT=/frp-dist
 
-RUN apt-get update \
-    && apt-get upgrade -y \
+RUN set -xe \
     && git clone https://github.com/fatedier/frp.git $SRC_ROOT \
     && cd $SRC_ROOT \
     && export LATEST_VERSION=`git tag --sort=v:refname | grep '^v' | tail -n1 | tr -d v` \
