@@ -1,29 +1,52 @@
 # Build Instructions
+## frps
 ``` sh
-$ export FRP_DOCKER_IMAGE_BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"`
-$ git clone https://github.com/fatedier/frp.git
-$ cd frp
-$ export FRP_LATEST_VERSION=`git tag --sort=v:refname | grep '^v' | tail -n1 | tr -d v`
-$ [ -z "$FRP_VERSION" ] && export FRP_VERSION=$FRP_LATEST_VERSION
-$ export FRP_VCS_REF=`git rev-list --abbrev-commit -1 v$FRP_VERSION`
-$ cd ..
+$ export BUILD_DIR=frps-builds
 
-$ curl -LO https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_${FRP_VERSION}_linux_amd64.tar.gz
-$ tar zxf frp_${FRP_VERSION}_linux_amd64.tar.gz -C frps
-$ tar zxf frp_${FRP_VERSION}_linux_amd64.tar.gz -C frpc
-$ rm -f frps/frp_${FRP_VERSION}_linux_amd64/frpc*
-$ rm -f frpc/frp_${FRP_VERSION}_linux_amd64/frps*
+$ cd frps
+$ docker build --pull -t frps-temp --build-arg VERSION=0.24.0 ./base
+$ ctid=$(docker create frps-temp)
+$ docker cp $ctid:/frp-dist $(pwd)/$BUILD_DIR
+$ docker rm -fv $ctid
+$ docker rmi frps-temp
 
-$ docker build --pull --tag leonismoe/frps:v$FRP_VERSION \
-               --build-arg BUILD_DATE=$FRP_DOCKER_IMAGE_BUILD_DATE \
-               --build-arg VCS_REF=$FRP_VCS_REF \
-               --build-arg VERSION=$FRP_VERSION ./frps
+$ export DOCKER_REPO=leonismoe/frps
+$ export BUILD_DATE=`cat $BUILD_DIR/.BUILD_DATE`
+$ export LATEST_VERSION=`cat $BUILD_DIR/.LATEST_VERSION`
+$ export VERSION=`cat $BUILD_DIR/.VERSION`
+$ export VCS_REF=`cat $BUILD_DIR/.VCS_REF`
 
-$ docker build --pull --tag leonismoe/frpc:v$FRP_VERSION \
-               --build-arg BUILD_DATE=$FRP_DOCKER_IMAGE_BUILD_DATE \
-               --build-arg VCS_REF=$FRP_VCS_REF \
-               --build-arg VERSION=$FRP_VERSION ./frpc
+$ docker build -t $DOCKER_REPO:v$VERSION \
+               --build-arg BUILD_DATE=$BUILD_DATE \
+               --build-arg VCS_REF=$VCS_REF \
+               --build-arg VERSION=$VERSION ./frps
 
-$ [ "$FRP_VERSION" == "$FRP_LATEST_VERSION" ] && docker tag leonismoe/frps:v$FRP_VERSION leonismoe/frps:latest
-$ [ "$FRP_VERSION" == "$FRP_LATEST_VERSION" ] && docker tag leonismoe/frpc:v$FRP_VERSION leonismoe/frpc:latest
+$ rm -rf ./$BUILD_DIR
+$ [ "$VERSION" == "$LATEST_VERSION" ] && docker tag $DOCKER_REPO:v$VERSION $DOCKER_REPO:latest
+```
+
+## frpc
+``` sh
+$ export BUILD_DIR=frpc-builds
+
+$ cd frpc
+$ docker build --pull -t frpc-temp --build-arg VERSION=0.24.0 ./base
+$ ctid=$(docker create frpc-temp)
+$ docker cp $ctid:/frp-dist $(pwd)/$BUILD_DIR
+$ docker rm -fv $ctid
+$ docker rmi frpc-temp
+
+$ export DOCKER_REPO=leonismoe/frpc
+$ export BUILD_DATE=`cat $BUILD_DIR/.BUILD_DATE`
+$ export LATEST_VERSION=`cat $BUILD_DIR/.LATEST_VERSION`
+$ export VERSION=`cat $BUILD_DIR/.VERSION`
+$ export VCS_REF=`cat $BUILD_DIR/.VCS_REF`
+
+$ docker build -t $DOCKER_REPO:v$VERSION \
+               --build-arg BUILD_DATE=$BUILD_DATE \
+               --build-arg VCS_REF=$VCS_REF \
+               --build-arg VERSION=$VERSION ./frpc
+
+$ rm -rf ./$BUILD_DIR
+$ [ "$VERSION" == "$LATEST_VERSION" ] && docker tag $DOCKER_REPO:v$VERSION $DOCKER_REPO:latest
 ```

@@ -13,6 +13,7 @@ RUN set -xe \
     && export VERSION="${VERSION:-$LATEST_VERSION}" \
     && export VCS_REF=`git rev-list --abbrev-commit -1 v$VERSION` \
     && git checkout v$VERSION \
+    && go fmt ./... \
     && export BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
     && export CGO_ENABLED=0 \
     && export GOOS=linux \

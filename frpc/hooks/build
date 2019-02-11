@@ -4,7 +4,7 @@ set -e
 
 BUILD_DIR=frp-builds
 
-docker build --pull -t frpc-temp ./base
+docker build --pull -t frpc-temp --build-arg VERSION=$VERSION ./base
 ctid=$(docker create frpc-temp)
 docker cp $ctid:/frp-dist $(pwd)/$BUILD_DIR
 docker rm -fv $ctid

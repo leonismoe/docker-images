@@ -13,6 +13,7 @@ RUN set -xe \
     && export VERSION="${VERSION:-$LATEST_VERSION}" \
     && export VCS_REF=`git rev-list --abbrev-commit -1 v$VERSION` \
     && git checkout v$VERSION \
+    && go fmt ./... \
     && export BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
     && export CGO_ENABLED=0 \
     && export GOOS=linux \
@@ -26,7 +27,6 @@ RUN set -xe \
     && export GOARCH=mips     && go build -ldflags "$LDFLAGS" -o $DIST_ROOT/$GOARCH/frps ./cmd/frps \
     && export GOARCH=mipsle   && go build -ldflags "$LDFLAGS" -o $DIST_ROOT/$GOARCH/frps ./cmd/frps \
     && cp -rf ./conf $DIST_ROOT/ \
-    && cp -rf ./assets/static $DIST_ROOT/ \
     && echo $LATEST_VERSION > $DIST_ROOT/.LATEST_VERSION \
     && echo $VERSION > $DIST_ROOT/.VERSION \
     && echo $VCS_REF > $DIST_ROOT/.VCS_REF \

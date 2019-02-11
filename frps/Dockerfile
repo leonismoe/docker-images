@@ -2,7 +2,6 @@ FROM scratch
 
 # see `hooks` and `base/Dockerfile` for details
 COPY frp-builds/amd64/frps /
-COPY frp-builds/static /static
 COPY frp-builds/conf/frps_full.ini /etc/frps.ini
 
 ARG VERSION
