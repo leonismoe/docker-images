@@ -1,4 +1,4 @@
-FROM golang:1.12-rc
+FROM golang:1.12
 
 ARG VERSION
 
