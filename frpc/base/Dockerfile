@@ -1,8 +1,9 @@
-FROM golang:1.12
+FROM golang:1.14
 
 ARG VERSION
 
 ENV GOPATH=/go \
+    GO111MODULE=on \
     SRC_ROOT=$GOPATH/src/github.com/fatedier/frp \
     DIST_ROOT=/frp-dist
 
