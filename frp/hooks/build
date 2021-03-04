@@ -4,7 +4,11 @@ set -e
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
 
-DOCKER_BUILD_OPTS='--squash'
+DOCKER_BUILD_OPTS=''
+if [ `docker version -f '{{.Server.Experimental}}'` = 'true' ]; then
+  DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --squash"
+fi
+
 if [ ! -z "$DOCKERFILE_PATH" ]; then
   DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --file $DOCKERFILE_PATH"
 fi
