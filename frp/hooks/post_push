@@ -1,0 +1,5 @@
+#!/bin/bash
+
+if [ ! -z "MICROBADGER_WEBHOOK" ]; then
+  curl -XPOST $MICROBADGER_WEBHOOK
+fi

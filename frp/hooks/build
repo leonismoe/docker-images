@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -e
+
+export DOCKER_CLI_EXPERIMENTAL=enabled
+
+DOCKER_BUILD_OPTS='--squash'
+if [ ! -z "$DOCKERFILE_PATH" ]; then
+  DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --file $DOCKERFILE_PATH"
+fi
+
+echo '==> preparing for build'
+docker build -t $DOCKER_REPO:build-temp --target=build --build-arg VERSION=$VERSION $DOCKER_BUILD_OPTS .
+
+# copy `.env` out and apply it
+ctid=$(docker create $DOCKER_REPO:build-temp)
+docker cp $ctid:/build/.env ./.env.local
+docker rm -fv $ctid
+
+source .env.local
+while read line; do
+  DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --build-arg $line"
+done < .env.local
+
+echo
+echo '==> building'
+ARCH_ALL='386 amd64 arm arm64 mips mipsle mips64 mips64le'
+for arch in $ARCH_ALL; do
+  echo
+  echo "  -> building for $arch..."
+
+  local EXTRA_OPTS="--build-arg OS=linux ARCH=$arch"
+  if [ "$arch" = "mips" ] || [ "$arch" = "mipsle" ]; then
+    EXTRA_OPTS="$EXTRA_OPTS --env GOMIPS=softfloat"
+  fi
+
+  docker build -t $DOCKER_REPO:$arch-$VERSION --build-arg $DOCKER_BUILD_OPTS $EXTRA_OPTS .
+done
+
+# cleanup
+docker rmi $DOCKER_REPO:build-temp > /dev/null
