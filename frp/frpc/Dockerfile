@@ -3,11 +3,14 @@ FROM golang AS build
 ENV GO111MODULE=on \
     GOPATH=/go \
     SRC_ROOT=$GOPATH/src/github.com/fatedier/frp \
-    DIST_ROOT=/build
+    DIST_ROOT=/build \
+    CGO_ENABLED=0 \
+    LDFLAGS="-s -w"
 
 # download sources
 RUN set -xe \
-    && git clone https://github.com/fatedier/frp.git $SRC_ROOT
+    && git clone https://github.com/fatedier/frp.git $SRC_ROOT \
+    && mkdir -p $DIST_ROOT
 
 # checkout version
 ARG VERSION
@@ -24,8 +27,7 @@ RUN set -xe \
 # prepare static resources
 RUN set -xe \
     && cd $SRC_ROOT \
-    && cp -rf ./conf $DIST_ROOT/ \
-    && make file
+    && cp -rf ./conf $DIST_ROOT/
 
 # cross build
 ARG OS

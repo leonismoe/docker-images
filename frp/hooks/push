@@ -2,6 +2,10 @@
 
 set -e
 
+if [ `basename $SHELL` = 'zsh' ]; then
+  set -o shwordsplit
+fi
+
 source .env.local
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
