@@ -29,7 +29,7 @@ RUN set -xe \
 # prepare dependencies and static resources
 RUN set -xe \
     && cd $SRC_ROOT \
-    && go mod download -x \
+    && go mod download \
     && cp -rf ./conf $DIST_ROOT/
 
 # cross build

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -xe
 
 . $PWD/.env.local
 
@@ -35,7 +35,10 @@ for manifest in $MANIFESTS; do
   docker manifest annotate $DOCKER_REPO:v$VERSION $manifest --os linux --arch $arch
 done
 docker manifest push $DOCKER_REPO:v$VERSION
-docker manifest rm $DOCKER_REPO:v$VERSION
+
+if docker manifest --help | grep -q '\brm\b'; then
+  docker manifest rm $DOCKER_REPO:v$VERSION
+fi
 
 
 # update `latest` if needed
@@ -46,7 +49,10 @@ if [ "$VERSION" = "$LATEST_VERSION" ]; then
     docker manifest annotate $DOCKER_REPO:latest $manifest --os linux --arch $arch
   done
   docker manifest push $DOCKER_REPO:latest
-  docker manifest rm $DOCKER_REPO:latest
+
+  if docker manifest --help | grep -q '\brm\b'; then
+    docker manifest rm $DOCKER_REPO:latest
+  fi
 fi
 
 

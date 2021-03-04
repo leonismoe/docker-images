@@ -22,5 +22,6 @@ docker run -d --name frpc --restart=always -v /path/to/frpc.ini:/etc/frpc.ini le
 
 ## Breaking Changes
 Starting from `v0.35.1`:
-* `amd64` and `x86_64` images are prefixed with `amd64-`
+* `linux/amd64` and `linux/x86_64` images are now prefixed with `amd64-`
+* `linux/386` images are now prefixed with `386-` rather than `i386-`
 * non-prefixed and `latest` images now support multiarch (excluding `mips` and `mipsle`)
