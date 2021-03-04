@@ -1,5 +1,7 @@
 FROM golang AS build
 
+SHELL ["/bin/bash", "-c"]
+
 ENV GO111MODULE=on \
     GOPATH=/go \
     SRC_ROOT=$GOPATH/src/github.com/fatedier/frp \
