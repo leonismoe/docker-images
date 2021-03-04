@@ -21,24 +21,26 @@ ctid=$(docker create $DOCKER_REPO:build-temp)
 docker cp $ctid:/build/.env $PWD/.env.local
 docker rm -fv $ctid
 
-source $PWD/.env.local
-while read line; do
-  DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --build-arg $line"
-done < $PWD/.env.local
+ORIGINAL_VERSION=$VERSION
+. $PWD/.env.local
+
+DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --build-arg BUILD_DATE=$BUILD_DATE"
+DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --build-arg VCS_REF=$VCS_REF"
+DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --build-arg VERSION=${ORIGINAL_VERSION:+$VERSION}"
 
 echo
 echo '==> building'
 ARCH_ALL='386 amd64 arm arm64 mips mipsle mips64 mips64le'
 for arch in $ARCH_ALL; do
-  echo
   echo "  -> building for $arch..."
 
-  EXTRA_OPTS="--build-arg OS=linux ARCH=$arch"
+  EXTRA_OPTS="--build-arg OS=linux --build-arg ARCH=$arch"
   if [ "$arch" = "mips" ] || [ "$arch" = "mipsle" ]; then
-    EXTRA_OPTS="$EXTRA_OPTS --env GOMIPS=softfloat"
+    EXTRA_OPTS="$EXTRA_OPTS --build-arg GOMIPS=softfloat"
   fi
 
-  docker build -t $DOCKER_REPO:$arch-$VERSION --build-arg $DOCKER_BUILD_OPTS $EXTRA_OPTS .
+  docker build -t $DOCKER_REPO:$arch-v$VERSION $DOCKER_BUILD_OPTS $EXTRA_OPTS .
+  echo
 done
 
 # cleanup

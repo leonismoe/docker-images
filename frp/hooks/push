@@ -2,7 +2,7 @@
 
 set -e
 
-source $PWD/.env.local
+. $PWD/.env.local
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
 
@@ -31,7 +31,7 @@ done
 # create manifest for current version
 docker manifest create $DOCKER_REPO:v$VERSION $MANIFESTS
 for manifest in $MANIFESTS; do
-  arch=$(echo $manifest | cut -d: -f2 | cut -d- -f1)
+  arch=$(echo $manifest | grep -oP '(?<=:)(386|amd64|arm|arm64|mips|mipsle|mips64|mips64le)(?=-)')
   docker manifest annotate $DOCKER_REPO:v$VERSION $manifest --os linux --arch $arch
 done
 docker manifest push $DOCKER_REPO:v$VERSION
@@ -42,7 +42,7 @@ docker manifest rm $DOCKER_REPO:v$VERSION
 if [ "$VERSION" = "$LATEST_VERSION" ]; then
   docker manifest create $DOCKER_REPO:latest $MANIFESTS
   for manifest in $MANIFESTS; do
-    arch=$(echo $manifest | cut -d: -f2 | cut -d- -f1)
+    arch=$(echo $manifest | grep -oP '(?<=:)(386|amd64|arm|arm64|mips|mipsle|mips64|mips64le)(?=-)')
     docker manifest annotate $DOCKER_REPO:latest $manifest --os linux --arch $arch
   done
   docker manifest push $DOCKER_REPO:latest

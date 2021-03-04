@@ -35,6 +35,7 @@ RUN set -xe \
 # cross build
 ARG OS
 ARG ARCH
+ARG GOMIPS
 RUN set -xe \
     && cd $SRC_ROOT \
     && source $DIST_ROOT/.env \
