@@ -26,9 +26,10 @@ RUN set -xe \
     && echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $DIST_ROOT/.env \
     && git checkout v$VERSION
 
-# prepare static resources
+# prepare dependencies and static resources
 RUN set -xe \
     && cd $SRC_ROOT \
+    && go mod download -x \
     && cp -rf ./conf $DIST_ROOT/
 
 # cross build
@@ -37,7 +38,7 @@ ARG ARCH
 RUN set -xe \
     && cd $SRC_ROOT \
     && source $DIST_ROOT/.env \
-    && [ ! -z "$ARCH" ] && GOOS=$OS GOARCH=$ARCH go build -trimpath -ldflags "$LDFLAGS" -o $DIST_ROOT/frpc ./cmd/frpc
+    && GOOS=$OS GOARCH=$ARCH go build -trimpath -ldflags "$LDFLAGS" -o $DIST_ROOT/frpc ./cmd/frpc
 
 
 FROM scratch

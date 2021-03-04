@@ -1,6 +1,18 @@
 # frp
 A fast reverse proxy to help you expose a local server behind a NAT or firewall to the internet.
 
+## Locally Build Instructions
+``` sh
+cd frpc
+export DOCKER_REPO=leonismoe/frpc
+./hooks/build
+```
+
+If using `zsh`, you need run the following commands first:
+``` sh
+set -o shwordsplit
+```
+
 ## Supported architectures
 * `linux/amd64`
 * `linux/i386`

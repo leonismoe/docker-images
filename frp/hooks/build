@@ -2,10 +2,6 @@
 
 set -e
 
-if [ `basename $SHELL` = 'zsh' ]; then
-  set -o shwordsplit
-fi
-
 export DOCKER_CLI_EXPERIMENTAL=enabled
 
 DOCKER_BUILD_OPTS=''
@@ -18,17 +14,17 @@ if [ ! -z "$DOCKERFILE_PATH" ]; then
 fi
 
 echo '==> preparing for build'
-docker build -t $DOCKER_REPO:build-temp --target=build --build-arg VERSION=$VERSION $DOCKER_BUILD_OPTS .
+docker build -t $DOCKER_REPO:build-temp --target=build --build-arg VERSION=$VERSION --build-arg OS=linux --build-arg ARCH=amd64 $DOCKER_BUILD_OPTS .
 
 # copy `.env` out and apply it
 ctid=$(docker create $DOCKER_REPO:build-temp)
-docker cp $ctid:/build/.env ./.env.local
+docker cp $ctid:/build/.env $PWD/.env.local
 docker rm -fv $ctid
 
-source .env.local
+source $PWD/.env.local
 while read line; do
   DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --build-arg $line"
-done < .env.local
+done < $PWD/.env.local
 
 echo
 echo '==> building'
@@ -37,7 +33,7 @@ for arch in $ARCH_ALL; do
   echo
   echo "  -> building for $arch..."
 
-  local EXTRA_OPTS="--build-arg OS=linux ARCH=$arch"
+  EXTRA_OPTS="--build-arg OS=linux ARCH=$arch"
   if [ "$arch" = "mips" ] || [ "$arch" = "mipsle" ]; then
     EXTRA_OPTS="$EXTRA_OPTS --env GOMIPS=softfloat"
   fi
