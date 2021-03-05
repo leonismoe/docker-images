@@ -1,3 +1,4 @@
 #!/bin/sh
 
+# $PWD is frpc, not frpc/hooks
 . ../hooks/push

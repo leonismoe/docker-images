@@ -3,7 +3,7 @@
 
 A fast reverse proxy to help you expose a local server behind a NAT or firewall to the internet.
 
-[![](https://images.microbadger.com/badges/image/leonismoe/frps.svg)](https://microbadger.com/images/leonismoe/frps) [![](https://images.microbadger.com/badges/version/leonismoe/frps.svg)](https://microbadger.com/images/leonismoe/frps)
+![Docker Image Version (latest semver)](https://img.shields.io/docker/v/leonismoe/frps) ![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/leonismoe/frps)
 
 # Usage
 ``` sh

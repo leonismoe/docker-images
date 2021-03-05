@@ -3,7 +3,7 @@
 
 A fast reverse proxy to help you expose a local server behind a NAT or firewall to the internet.
 
-[![](https://images.microbadger.com/badges/image/leonismoe/frpc.svg)](https://microbadger.com/images/leonismoe/frpc) [![](https://images.microbadger.com/badges/version/leonismoe/frpc.svg)](https://microbadger.com/images/leonismoe/frpc)
+![Docker Image Version (latest semver)](https://img.shields.io/docker/v/leonismoe/frpc) ![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/leonismoe/frpc)
 
 # Usage
 ``` sh

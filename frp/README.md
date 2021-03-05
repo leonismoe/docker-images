@@ -1,6 +1,8 @@
 # frp
 A fast reverse proxy to help you expose a local server behind a NAT or firewall to the internet.
 
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/fatedier/frp)
+
 ## Locally Build Instructions
 ``` sh
 cd frpc
