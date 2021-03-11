@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -xe
+
+. $PWD/.env.local
+
+export DOCKER_CLI_EXPERIMENTAL=enabled
+
+docker push $DOCKER_REPO:$VERSION
+
+if [ "$VERSION" = "$LATEST_VERSION" ]; then
+  docker tag $DOCKER_REPO:$VERSION $DOCKER_REPO:latest
+  docker push $DOCKER_REPO:latest
+  docker rmi $DOCKER_REPO:latest
+fi
+
+# cleanup
+docker rmi $DOCKER_REPO:$VERSION
