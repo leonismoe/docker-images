@@ -40,4 +40,4 @@ ARG VERSION
 LABEL version=${VERSION}
 
 EXPOSE 8080
-RUN ["/ariang"]
+CMD ["/ariang"]
