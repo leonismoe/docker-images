@@ -24,6 +24,9 @@ docker rm -fv $ctid
 
 . $PWD/.env.local
 
+# backup dockerfile for further use
+cp Dockerfile Dockerfile.original
+
 DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --build-arg VERSION=$VERSION"
 
 ARCH_TABLE=$(cat <<EOT
@@ -57,10 +60,14 @@ echo "$ARCH_TABLE" | while IFS= read -r line; do
     extra_opts="$extra_opts --build-arg VARIANT=$variant"
   fi
 
+  # the automated build on docker hub currently doesn't support variables in `FROM`
+  sed "s/\\\${MUSLCC_TARGET}/$muslcc_target/" Dockerfile.original > Dockerfile
+
   echo ":: building for $os_arch"
   docker build -t $DOCKER_REPO:$arch-$VERSION $DOCKER_BUILD_OPTS $extra_opts .
   echo
 done
 
 # cleanup
+mv -f Dockerfile.original Dockerfile
 docker rmi $DOCKER_REPO:build-temp > /dev/null
