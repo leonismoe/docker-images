@@ -40,8 +40,8 @@ linux/arm64 aarch64-linux-musl
 linux/ppc64le powerpc64le-linux-musl
 linux/mips mips-linux-muslsf
 linux/mipsle mipsel-linux-muslsf
-linux/mips64 mips64-linux-musl32sf
-linux/mips64le mips64el-linux-musl32sf
+linux/mips64 mips64-linux-musln32sf
+linux/mips64le mips64el-linux-musln32sf
 linux/riscv64 riscv64-linux-musl
 linux/s390x s390x-linux-musl
 EOT
