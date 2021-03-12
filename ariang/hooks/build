@@ -55,16 +55,13 @@ echo "$ARCH_TABLE" | while IFS= read -r line; do
   arch=$(echo $os_arch | cut -d/ -f2)
   variant=$(echo $os_arch | cut -d/ -f3)
 
-  extra_opts="--build-arg MUSLCC_TARGET=$muslcc_target --build-arg OS=$os --build-arg ARCH=$arch"
-  if [ ! -z "$variant" ]; then
-    extra_opts="$extra_opts --build-arg VARIANT=$variant"
-  fi
+  extra_opts="--build-arg MUSLCC_TARGET=$muslcc_target --build-arg OS=$os --build-arg ARCH=$arch --build-arg VARIANT=$variant"
 
   # the automated build on docker hub currently doesn't support variables in `FROM`
   sed "s/\\\${MUSLCC_TARGET}/$muslcc_target/" Dockerfile.original > Dockerfile
 
   echo ":: building for $os_arch"
-  docker build -t $DOCKER_REPO:$arch-$VERSION $DOCKER_BUILD_OPTS $extra_opts .
+  docker build -t $DOCKER_REPO:${arch}${variant}-$VERSION $DOCKER_BUILD_OPTS $extra_opts .
   echo
 done
 
