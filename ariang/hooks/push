@@ -26,6 +26,23 @@ linux/s390x
 EOT
 )
 
+# `docker manifest` does not support `linux/mips` and `linux/mipsle`
+# see https://github.com/docker/cli/blob/88c6089300a82d3373892adf6845a4fed1a4ba8d/cli/command/manifest/util.go#L22
+manifest_supports() {
+  local arch=$1
+  if [ "$arch" = "mips" ]; then return 1; fi
+  if [ "$arch" = "mipsle" ]; then return 1; fi
+
+  # `linux/riscv64` is also unsupported before docker v20.10.0
+  # see https://github.com/docker/cli/commit/41aa20b6b5fb68fa5da7bf5a7a6eb6c37cbd45bc
+  local cliver=$(docker version -f '{{.Client.Version}}')
+  if [ "$arch" = "riscv64" ] && [ "$cliver" = $(echo -e "$cliver\n20.10.0" | sort -V | head -n1) ]; then
+    return 1
+  fi
+
+  return 0
+}
+
 for line in $ARCH_ALL; do
   arch=$(echo $line | cut -d/ -f2)
   variant=$(echo $line | cut -d/ -f3)
@@ -44,7 +61,7 @@ for line in $ARCH_ALL; do
   # create manifest list cache
   # `docker manifest` does not support `linux/mips` and `linux/mipsle`
   # see https://github.com/docker/cli/blob/88c6089300a82d3373892adf6845a4fed1a4ba8d/cli/command/manifest/util.go#L22
-  if [ "$arch" != "mips" ] && [ "$arch" != "mipsle" ]; then
+  if manifest_supports $arch; then
     MANIFESTS="$MANIFESTS $DOCKER_REPO:${arch}${variant}-$VERSION"
   fi
 done
@@ -58,7 +75,7 @@ for line in $ARCH_ALL; do
   arch=$(echo $line | cut -d/ -f2)
   variant=$(echo $line | cut -d/ -f3)
 
-  if [ "$arch" != "mips" ] && [ "$arch" != "mipsle" ]; then
+  if manifest_supports $arch; then
     extra_opts="--os $os --arch $arch"
     if [ ! -z "$variant" ]; then
       extra_opts="$extra_opts --variant $variant"
@@ -83,7 +100,7 @@ if [ "$VERSION" = "$LATEST_VERSION" ]; then
     arch=$(echo $line | cut -d/ -f2)
     variant=$(echo $line | cut -d/ -f3)
 
-    if [ "$arch" != "mips" ] && [ "$arch" != "mipsle" ]; then
+    if manifest_supports $arch; then
       extra_opts="--os $os --arch $arch"
       if [ ! -z "$variant" ]; then
         extra_opts="$extra_opts --variant $variant"
