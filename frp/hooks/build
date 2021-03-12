@@ -4,7 +4,7 @@ set -e
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
 
-DOCKER_BUILD_OPTS=''
+DOCKER_BUILD_OPTS="--build-arg CHECKOUT_VERSION=$VERSION"
 if [ `docker version -f '{{.Server.Experimental}}'` = 'true' ]; then
   DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --squash"
 fi
@@ -14,19 +14,18 @@ if [ ! -z "$DOCKERFILE_PATH" ]; then
 fi
 
 echo '==> preparing for build'
-docker build -t $DOCKER_REPO:build-temp --target=build --build-arg VERSION=$VERSION --build-arg OS=linux --build-arg ARCH=amd64 $DOCKER_BUILD_OPTS .
+docker build -t $DOCKER_REPO:build-temp --target=build --build-arg OS=linux --build-arg ARCH=amd64 $DOCKER_BUILD_OPTS .
 
 # copy `.env` out and apply it
 ctid=$(docker create $DOCKER_REPO:build-temp)
 docker cp $ctid:/build/.env $PWD/.env.local
 docker rm -fv $ctid
 
-ORIGINAL_VERSION=$VERSION
 . $PWD/.env.local
 
 DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --build-arg BUILD_DATE=$BUILD_DATE"
 DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --build-arg VCS_REF=$VCS_REF"
-DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --build-arg VERSION=${ORIGINAL_VERSION:+$VERSION}"
+DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --build-arg VERSION=$VERSION"
 
 echo
 echo '==> building'

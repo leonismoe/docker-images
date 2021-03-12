@@ -15,11 +15,11 @@ RUN set -xe \
     && mkdir -p $DIST_ROOT
 
 # checkout version
-ARG VERSION
+ARG CHECKOUT_VERSION
 RUN set -xe \
     && cd $SRC_ROOT \
     && export LATEST_VERSION=`git tag --sort=v:refname | grep '^v' | tail -n1 | tr -d v` \
-    && export VERSION="${VERSION:-$LATEST_VERSION}" \
+    && export VERSION="${CHECKOUT_VERSION:-$LATEST_VERSION}" \
     && echo VERSION=$VERSION > $DIST_ROOT/.env \
     && echo LATEST_VERSION=$LATEST_VERSION >> $DIST_ROOT/.env \
     && echo "VCS_REF=$(git rev-list --abbrev-commit -1 v$VERSION)" >> $DIST_ROOT/.env \
@@ -48,7 +48,6 @@ COPY --from=build /build/frps /frps
 COPY --from=build /build/conf/frps_full.ini /etc/frps.ini
 
 ARG VERSION
-
-LABEL version=$VERSION
+LABEL version=${VERSION}
 
 CMD ["/frps", "-c", "/etc/frps.ini"]
