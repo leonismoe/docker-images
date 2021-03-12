@@ -13,22 +13,54 @@ if [ ! -z "$DOCKERFILE_PATH" ]; then
   DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --file $DOCKERFILE_PATH"
 fi
 
-echo '==> preparing for build'
-docker build -t $DOCKER_REPO:build-temp --target=build $DOCKER_BUILD_OPTS .
+echo ':: preparing for build'
+docker build -t $DOCKER_REPO:build-temp --target=prepare $DOCKER_BUILD_OPTS .
+echo
 
 # copy `.env` out and apply it
 ctid=$(docker create $DOCKER_REPO:build-temp)
 docker cp $ctid:/build/.env $PWD/.env.local
 docker rm -fv $ctid
 
-ORIGINAL_VERSION=$VERSION
 . $PWD/.env.local
 
-DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --build-arg VERSION=${ORIGINAL_VERSION:+$VERSION}"
+DOCKER_BUILD_OPTS="$DOCKER_BUILD_OPTS --build-arg VERSION=$VERSION"
 
-echo
-echo '==> building'
-docker build -t $DOCKER_REPO:$VERSION $DOCKER_BUILD_OPTS .
+ARCH_TABLE=$(cat <<EOT
+linux/386 i686-linux-musl
+linux/amd64 x86_64-linux-musl
+linux/arm arm-linux-musleabi
+linux/arm/v5 armv5l-linux-musleabi
+linux/arm/v6 armv6-linux-musleabi
+linux/arm/v7 armv7m-linux-musleabi
+linux/arm64 aarch64-linux-musl
+linux/ppc64le powerpc64le-linux-musl
+linux/mips mips-linux-muslsf
+linux/mipsle mipsel-linux-muslsf
+linux/mips64 mips64-linux-musl32sf
+linux/mips64le mips64el-linux-musl32sf
+linux/riscv64 riscv64-linux-musl
+linux/s390x s390x-linux-musl
+EOT
+)
+
+echo "$ARCH_TABLE" | while IFS= read -r line; do
+  os_arch=$(echo $line | cut -d' ' -f1)
+  muslcc_target=$(echo $line | cut -d' ' -f2)
+
+  os=$(echo $os_arch | cut -d/ -f1)
+  arch=$(echo $os_arch | cut -d/ -f2)
+  variant=$(echo $os_arch | cut -d/ -f3)
+
+  extra_opts="--build-arg MUSLCC_TARGET=$muslcc_target --build-arg OS=$os --build-arg ARCH=$arch"
+  if [ ! -z "$variant" ]; then
+    extra_opts="$extra_opts --build-arg VARIANT=$variant"
+  fi
+
+  echo ":: building for $os_arch"
+  docker build -t $DOCKER_REPO:$arch-$VERSION $DOCKER_BUILD_OPTS $extra_opts .
+  echo
+done
 
 # cleanup
 docker rmi $DOCKER_REPO:build-temp > /dev/null

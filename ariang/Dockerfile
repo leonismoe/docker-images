@@ -1,20 +1,26 @@
-FROM mhart/alpine-node:10 AS build
+FROM alpine AS prepare
 
 RUN set -xe \
-    && apk add --update git vim make gcc musl-dev qpdf \
-    && mkdir /build
-
-WORKDIR /build
-COPY httpd.c /build
-
-RUN set -xe \
+    && apk add --no-cache git make gcc libc-dev \
+    && mkdir /build \
+    && cd /build \
     && git clone --depth=1 https://github.com/BR903/ELFkickers.git \
     && cd ELFkickers \
-    && make install PROGRAMS=sstrip
+    && make PROGRAMS=sstrip \
+    && cp sstrip/sstrip /build \
+    && cd .. \
+    && rm -rf ELFkickers \
+    && apk del make gcc libc-dev
 
+WORKDIR /build
 ARG CHECKOUT_VERSION
 
 RUN set -xe \
+    && apk add --no-cache curl xxd qpdf \
+    && curl -sSO https://unofficial-builds.nodejs.org/download/release/v10.24.0/node-v10.24.0-linux-x64-musl.tar.xz \
+    && tar -Jxf node-v10.24.0-linux-x64-musl.tar.xz \
+    && rm -f node-v10.24.0-linux-x64-musl.tar.xz \
+    && export PATH=/build/node-v10.24.0-linux-x64-musl/bin:$PATH \
     && git clone https://github.com/mayswind/AriaNg.git \
     && cd AriaNg \
     && export LATEST_VERSION=`git tag --sort=v:refname | grep '^\d' | tail -n1` \
@@ -24,12 +30,25 @@ RUN set -xe \
     && git checkout $VERSION \
     && npm i \
     && npx gulp build-bundle \
-    && cd .. \
-    && zlib-flate -compress < AriaNg/dist/index.html > index.html.deflate \
+    && cp dist/index.html /build/ \
+    && cd /build \
+    && rm -rf AriaNg node-v10.24.0-linux-x64-musl \
+    && zlib-flate -compress=9 < index.html > index.html.deflate \
     && xxd -i index.html.deflate > index_html_deflate.c \
+    && apk del curl xxd qpdf
+
+ARG MUSLCC_TARGET
+FROM muslcc/x86_64:${MUSLCC_TARGET} AS build
+
+COPY --from=prepare /build /build
+COPY httpd.c /build
+
+WORKDIR /build
+
+RUN set -xe \
     && sed -i "s/\\\${CONTENT_LENGTH}/$(stat -c%s index.html.deflate)/" httpd.c \
     && gcc -Os --static -s -fno-stack-protector -ffunction-sections -fdata-sections -Wl,--gc-sections httpd.c -o httpd \
-    && sstrip httpd
+    && /build/sstrip httpd
 
 
 FROM scratch
