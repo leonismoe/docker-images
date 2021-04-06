@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import sys
+import re
+import xml.etree.ElementTree as ET
+from datetime import datetime
+from typing import List, Dict, Optional
+
+def parse_argv(argv: List[str]) -> Dict[str, str]:
+    # cat releases.atom | get-newer-versions
+    if len(argv) < 2:
+        return { 'file': '-', 'date': '' }
+
+    # cat releases.atom | get-newer-versions 2021-01-01T00:00:00+00:00
+    elif len(argv) == 2 and (re.compile(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}$').match(argv[1])):
+        return { 'file': '-', 'date': argv[1] }
+
+    # get-newer-versions releases.atom
+    elif len(argv) == 2:
+        return { 'file': argv[1], 'date': '' }
+
+    # get-newer-versions releases.atom 2021-01-01T00:00:00+00:00
+    else:
+        return { 'file': argv[1], 'date': argv[2] }
+
+def extract_tag(item: ET.Element) -> Optional[Dict[str, str]]:
+    date_node = item.find('{http://www.w3.org/2005/Atom}updated')
+    link_node = item.find('{http://www.w3.org/2005/Atom}link')
+    if date_node != None and link_node != None:
+        href = link_node.attrib['href']
+        return { 'tag': href[(href.rindex('/') + 1):], 'date': date_node.text.replace('Z', '+00:00') }
+
+args = parse_argv(sys.argv)
+tree = ET.parse(args['file'] if args['file'] != '-' else open(0, encoding='utf-8'))
+feed = tree.getroot()
+
+tags = []
+for item in feed:
+    if item.tag == '{http://www.w3.org/2005/Atom}entry':
+        result = extract_tag(item)
+        if result == None:
+            break
+
+        if args['date'] == '':
+            tags.insert(0, result['tag'])
+            break
+
+        if datetime.fromisoformat(result['date']) > datetime.fromisoformat(args['date']):
+            tags.insert(0, result['tag'])
+
+print(*tags, sep='\n')

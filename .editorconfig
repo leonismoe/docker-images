@@ -22,3 +22,7 @@ trim_trailing_whitespace = false
 [*.{patch,diff}]
 insert_final_newline = false
 trim_trailing_whitespace = false
+
+[_scripts/*]
+indent_size = 4
+tab_width = 4

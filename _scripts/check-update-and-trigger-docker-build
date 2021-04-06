@@ -1,0 +1,71 @@
+#!/bin/bash
+
+set -eo pipefail
+
+RSS_CACHE_FILE=.cache/rss-cache-releases
+
+if [ ! -d ./.cache ]; then
+    mkdir .cache
+fi
+
+# load previous result
+if [ -f $RSS_CACHE_FILE ]; then
+    . $RSS_CACHE_FILE
+    rm -f $RSS_CACHE_FILE
+fi
+
+check_pkg_releases() {
+    local pkg=$1
+    local path=${2:-$1}
+    local pkg_upper=${pkg^^}
+
+    if [ ! -d $path ] || [ ! -f $path/.env ]; then
+        return 0
+    fi
+
+    . $path/.env
+
+    local SUBPKG_VARNAME="PKG_${pkg_upper}_SUBPKGS"
+    if [ ! -z "${!SUBPKG_VARNAME}" ]; then
+        for subpkg in ${!SUBPKG_VARNAME}; do
+            check_pkg_releases $subpkg $path/$subpkg
+        done
+    fi
+
+    local RSSURL_VARNAME="PKG_${pkg_upper}_RELEASES_RSS_URL"
+    if [ -z "${!RSSURL_VARNAME}" ]; then
+        return 0
+    fi
+
+    local WEBHOOK_VARNAME="PKG_${pkg_upper}_WEBHOOK"
+    if [ -z "${!WEBHOOK_VARNAME}" ]; then
+        >&2 echo "$WEBHOOK_VARNAME is required"
+        return 1
+    fi
+
+    # write cache, ignore the first run if needed
+    local LASTCHECK_DATE_VARNAME="PKG_${pkg_upper}_RELEASES_RSS_LASTCHECK"
+    local IGNORE_FIRST_RUN_VARNAME="PKG_${pkg_upper}_RELEASES_RSS_IGNORE_FIRST_RUN"
+    echo "$LASTCHECK_DATE_VARNAME=$(date -u -Iseconds)" >> $RSS_CACHE_FILE
+    if [ -z "${!LASTCHECK_DATE_VARNAME}" ] && [ "${!IGNORE_FIRST_RUN_VARNAME:-true}" == "true" ]; then
+        return 0
+    fi
+
+    echo -n ":: Checking package ${path}..."
+    local tags=$(curl -sS ${!RSSURL_VARNAME} | ./_scripts/filter-new-release-tags ${!LASTCHECK_DATE_VARNAME})
+
+    # unable to pass version to DockerHub, only build the latest version
+    if [ ! -z "$tags" ]; then
+        echo -e -n "\n  -> Triggering build for $(echo "$tags" | tail -n1)..."
+        curl -sS -XPOST ${!WEBHOOK_VARNAME}
+        echo "  done"
+    else
+        echo "  already up to date"
+    fi
+
+    unset `awk -F '=' '{print $1}' $path/.env`
+}
+
+for pkg in *; do
+    check_pkg_releases $pkg
+done
