@@ -46,7 +46,7 @@ check_pkg_releases() {
     # write cache, ignore the first run if needed
     local LASTCHECK_DATE_VARNAME="PKG_${pkg_upper}_RELEASES_RSS_LASTCHECK"
     local IGNORE_FIRST_RUN_VARNAME="PKG_${pkg_upper}_RELEASES_RSS_IGNORE_FIRST_RUN"
-    echo "$LASTCHECK_DATE_VARNAME=$(date -u -Iseconds)" >> $RSS_CACHE_FILE
+    echo "$LASTCHECK_DATE_VARNAME=$(date -u -Iseconds | sed 's/UTC/+00:00/')" >> $RSS_CACHE_FILE
     if [ -z "${!LASTCHECK_DATE_VARNAME}" ] && [ "${!IGNORE_FIRST_RUN_VARNAME:-true}" == "true" ]; then
         return 0
     fi
