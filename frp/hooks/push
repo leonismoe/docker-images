@@ -57,6 +57,8 @@ fi
 
 
 # cleanup
+docker rmi $DOCKER_REPO:build-temp || true
+
 for arch in $ARCH_ALL; do
   docker rmi $DOCKER_REPO:$arch-v$VERSION > /dev/null
 

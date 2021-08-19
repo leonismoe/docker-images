@@ -41,6 +41,3 @@ for arch in $ARCH_ALL; do
   docker build -t $DOCKER_REPO:$arch-v$VERSION $DOCKER_BUILD_OPTS $EXTRA_OPTS .
   echo
 done
-
-# cleanup
-docker rmi $DOCKER_REPO:build-temp > /dev/null
