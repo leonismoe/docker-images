@@ -45,8 +45,6 @@ jobs:
         working-directory: frp/frpc
         run: |
           ../hooks/build
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "LATEST_VERSION=$LATEST_VERSION" >> $GITHUB_ENV
 
           export DOCKER_REPO="ghcr.io/$DOCKER_REPO"
           ../hooks/build
@@ -60,6 +58,13 @@ jobs:
 
           export DOCKER_REPO="ghcr.io/$DOCKER_REPO"
           ../hooks/build
+
+      - name: Extract version
+        working-directory: frp/frps
+        run: |
+          . .env.local
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "LATEST_VERSION=$LATEST_VERSION" >> $GITHUB_ENV
 
       - name: Push to DockerHub
         if: ${{ github.event_name != 'pull_request' && github.actor == env.DOCKERHUB_USERNAME }}
