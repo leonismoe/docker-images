@@ -14,13 +14,14 @@ RUN set -xe \
 
 WORKDIR /build
 ARG CHECKOUT_VERSION
+ARG NODE_VERSION=10.24.1
 
 RUN set -xe \
     && apk add --no-cache curl xxd qpdf \
-    && curl -sSO https://unofficial-builds.nodejs.org/download/release/v10.24.0/node-v10.24.0-linux-x64-musl.tar.xz \
-    && tar -Jxf node-v10.24.0-linux-x64-musl.tar.xz \
-    && rm -f node-v10.24.0-linux-x64-musl.tar.xz \
-    && export PATH=/build/node-v10.24.0-linux-x64-musl/bin:$PATH \
+    && curl -sSO https://unofficial-builds.nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64-musl.tar.xz \
+    && tar -Jxf node-v${NODE_VERSION}-linux-x64-musl.tar.xz \
+    && rm -f node-v${NODE_VERSION}-linux-x64-musl.tar.xz \
+    && export PATH=/build/node-v${NODE_VERSION}-linux-x64-musl/bin:$PATH \
     && git clone https://github.com/mayswind/AriaNg.git \
     && cd AriaNg \
     && export LATEST_VERSION=`git tag --sort=v:refname | grep '^\d' | tail -n1` \
@@ -32,7 +33,7 @@ RUN set -xe \
     && npx gulp build-bundle \
     && cp dist/index.html /build/ \
     && cd /build \
-    && rm -rf AriaNg node-v10.24.0-linux-x64-musl \
+    && rm -rf AriaNg node-v${NODE_VERSION}-linux-x64-musl \
     && zlib-flate -compress=9 < index.html > index.html.deflate \
     && xxd -i index.html.deflate > index_html_deflate.c \
     && apk del curl xxd qpdf
