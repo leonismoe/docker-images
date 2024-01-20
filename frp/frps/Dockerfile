@@ -1,53 +1,58 @@
-FROM golang AS build
+# syntax=docker/dockerfile:1
+
+FROM --platform=$BUILDPLATFORM tonistiigi/xx AS xx
+
+FROM --platform=$BUILDPLATFORM golang AS build
+
+COPY --from=xx / /
 
 SHELL ["/bin/bash", "-c"]
 
 ENV GO111MODULE=on \
     GOPATH=/go \
     SRC_ROOT=$GOPATH/src/github.com/fatedier/frp \
-    DIST_ROOT=/build \
     CGO_ENABLED=0 \
     LDFLAGS="-s -w"
 
-# download sources
-RUN set -xe \
-    && git clone https://github.com/fatedier/frp.git $SRC_ROOT \
-    && mkdir -p $DIST_ROOT
+ARG GIT_BRANCH
 
-# checkout version
-ARG CHECKOUT_VERSION
-RUN set -xe \
-    && cd $SRC_ROOT \
-    && export LATEST_VERSION=`git tag --sort=v:refname | grep '^v' | tail -n1 | tr -d v` \
-    && export VERSION="${CHECKOUT_VERSION:-$LATEST_VERSION}" \
-    && echo VERSION=$VERSION > $DIST_ROOT/.env \
-    && echo LATEST_VERSION=$LATEST_VERSION >> $DIST_ROOT/.env \
-    && echo "VCS_REF=$(git rev-list --abbrev-commit -1 v$VERSION)" >> $DIST_ROOT/.env \
-    && echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $DIST_ROOT/.env \
-    && git checkout v$VERSION
+RUN <<EOF
+    set -xe
+    git clone --depth 1 --branch $GIT_BRANCH https://github.com/fatedier/frp.git $SRC_ROOT
+    cd $SRC_ROOT
+    go mod download
+EOF
 
-# prepare dependencies and static resources
-RUN set -xe \
-    && cd $SRC_ROOT \
-    && go mod download \
-    && cp -rf ./conf $DIST_ROOT/
+COPY frp-autoconf.go /go/
 
-# cross build
-ARG OS
-ARG ARCH
-ARG GOMIPS
-RUN set -xe \
-    && cd $SRC_ROOT \
-    && . $DIST_ROOT/.env \
-    && GOOS=$OS GOARCH=$ARCH go build -trimpath -ldflags "$LDFLAGS" -o $DIST_ROOT/frps ./cmd/frps
+ARG TARGETPLATFORM
+ARG TARGETARCH
 
+RUN <<EOF
+    set -xe
+    cd $SRC_ROOT
+
+    if [ "$TARGETARCH" = "mips" ] || [ "$TARGETARCH" = "mipsle" ]; then
+        export GOMIPS=softfloat
+    fi
+
+    mkdir -p /build/etc
+    xx-go build -trimpath -ldflags "$LDFLAGS" -o /build/frps ./cmd/frps
+    strip /build/frps || true
+    xx-verify /build/frps
+    cp ./conf/frps.toml /build/etc/frps.toml
+
+    xx-go build -trimpath -ldflags "$LDFLAGS" -o /build/frp-autoconf /go/frp-autoconf.go
+    strip /build/frp-autoconf || true
+    xx-verify /build/frp-autoconf
+EOF
 
 FROM scratch
 
-COPY --from=build /build/frps /frps
-COPY --from=build /build/conf/frps_full.ini /etc/frps.ini
+COPY --from=build /build/ /
 
 ARG VERSION
 LABEL version=${VERSION}
 
-CMD ["/frps", "-c", "/etc/frps.ini"]
+ENTRYPOINT ["/frp-autoconf"]
+CMD ["/frps", "-c", "/etc/frps.toml"]

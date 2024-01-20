@@ -1,63 +1,110 @@
-FROM alpine AS prepare
+# syntax=docker/dockerfile:1
 
-RUN set -xe \
-    && apk add --no-cache git make gcc libc-dev \
-    && mkdir /build \
-    && cd /build \
-    && git clone --depth=1 https://github.com/BR903/ELFkickers.git \
-    && cd ELFkickers \
-    && make PROGRAMS=sstrip \
-    && cp sstrip/sstrip /build \
-    && cd .. \
-    && rm -rf ELFkickers \
-    && apk del make gcc libc-dev
+FROM --platform=$BUILDPLATFORM node:lts AS build
 
-WORKDIR /build
-ARG CHECKOUT_VERSION
-ARG NODE_VERSION=10.24.1
+ARG GIT_BRANCH
 
-RUN set -xe \
-    && apk add --no-cache curl xxd qpdf \
-    && curl -sSO https://unofficial-builds.nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64-musl.tar.xz \
-    && tar -Jxf node-v${NODE_VERSION}-linux-x64-musl.tar.xz \
-    && rm -f node-v${NODE_VERSION}-linux-x64-musl.tar.xz \
-    && export PATH=/build/node-v${NODE_VERSION}-linux-x64-musl/bin:$PATH \
-    && git clone https://github.com/mayswind/AriaNg.git \
-    && cd AriaNg \
-    && export LATEST_VERSION=`git tag --sort=v:refname | grep '^\d' | tail -n1` \
-    && export VERSION="${CHECKOUT_VERSION:-$LATEST_VERSION}" \
-    && echo VERSION=$VERSION > /build/.env \
-    && echo LATEST_VERSION=$LATEST_VERSION >> /build/.env \
-    && git checkout $VERSION \
-    && npm i \
-    && npx gulp build-bundle \
-    && cp dist/index.html /build/ \
-    && cd /build \
-    && rm -rf AriaNg node-v${NODE_VERSION}-linux-x64-musl \
-    && zlib-flate -compress=9 < index.html > index.html.deflate \
-    && xxd -i index.html.deflate > index_html_deflate.c \
-    && apk del curl xxd qpdf
+RUN <<EOF
+    set -ex
+    if [ ! -z "$NPM_REGISTRY" ]; then
+        npm config set registry $NPM_REGISTRY
+    fi
 
-ARG MUSLCC_TARGET
-FROM muslcc/x86_64:${MUSLCC_TARGET} AS build
+    mkdir -p /build
+    cd /build
+    git clone --depth 1 --branch $GIT_BRANCH https://github.com/mayswind/AriaNg.git
+    cd AriaNg
+    npm install
+    npm run build
+EOF
 
-COPY --from=prepare /build /build
-COPY httpd.c /build
+FROM --platform=$BUILDPLATFORM tonistiigi/xx AS xx
 
-WORKDIR /build
+FROM --platform=$BUILDPLATFORM alpine:edge AS xbuild
 
-RUN set -xe \
-    && sed -i "s/\\\${CONTENT_LENGTH}/$(stat -c%s index.html.deflate)/" httpd.c \
-    && gcc -Os --static -s -fno-stack-protector -ffunction-sections -fdata-sections -Wl,--gc-sections httpd.c -o httpd \
-    && /build/sstrip httpd
+COPY --from=xx / /
 
+RUN <<EOF
+    set -ex
+    if [ ! -z "$APK_MIRROR" ]; then
+        sed -i "s/dl-cdn.alpinelinux.org/$APK_MIRROR/g" /etc/apk/repositories
+    fi
+EOF
+
+RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
+    --mount=type=cache,target=/var/lib/apk,sharing=locked \
+    --mount=type=tmpfs,target=/var/cache \
+    --mount=type=tmpfs,target=/var/lock \
+    --mount=type=tmpfs,target=/var/log \
+    --mount=type=tmpfs,target=/var/tmp \
+    --mount=type=tmpfs,target=/tmp \
+    --mount=type=tmpfs,target=/run \
+    <<EOF
+    set -ex
+
+    apk add clang git libcap lld make
+EOF
+
+RUN <<EOF
+    set -ex
+
+    mkdir -p /build
+    cd /build
+    git clone --depth 1 https://github.com/BR903/ELFkickers.git
+    cd ELFkickers
+    make PROGRAMS=sstrip
+    cp sstrip/sstrip /usr/local/bin
+EOF
+
+RUN <<EOF
+    set -ex
+
+    mkdir -p /build
+    cd /build
+    git clone --depth 1 https://github.com/emikulic/darkhttpd.git
+EOF
+
+ARG TARGETPLATFORM
+
+RUN --mount=type=cache,target=/var/cache/apk,id=apk-cache-$TARGETARCH$TARGETVARIANT,sharing=locked \
+    --mount=type=cache,target=/var/lib/apk,id=apk-lib-$TARGETARCH$TARGETVARIANT,sharing=locked \
+    --mount=type=tmpfs,target=/var/cache \
+    --mount=type=tmpfs,target=/var/lock \
+    --mount=type=tmpfs,target=/var/log \
+    --mount=type=tmpfs,target=/var/tmp \
+    --mount=type=tmpfs,target=/tmp \
+    --mount=type=tmpfs,target=/run \
+    <<EOF
+    set -ex
+
+    xx-apk add gcc musl-dev
+EOF
+
+RUN <<EOF
+    set -ex
+
+    cd /build/darkhttpd
+    make darkhttpd-static CC=xx-clang CFLAGS='-Os -D_FORTIFY_SOURCE=2 -Dstrip=true -fstack-clash-protection -fstack-protector-strong -pipe -Wall -Wextra -Werror=format-security -Werror=implicit-function-declaration -Wl,-z,defs -Wl,-z,now -Wl,-z,relro -Wl,-z,noexecstack'
+    setcap cap_net_bind_service=+ep darkhttpd-static
+    sstrip darkhttpd-static || true
+    xx-verify darkhttpd-static
+
+    mkdir -p /build/root/etc
+    cp darkhttpd-static /build/root/darkhttpd
+    echo 'nobody:x:65534:65534:nobody:/www:/darkhttpd' > /build/root/etc/passwd
+    echo 'nobody:x:65534:' > /build/root/etc/group
+EOF
+
+COPY --from=build /build/AriaNg/dist /build/root/www
 
 FROM scratch
 
-COPY --from=build /build/httpd /ariang
+COPY --from=xbuild /build/root/ /
 
 ARG VERSION
 LABEL version=${VERSION}
 
 EXPOSE 8080
-CMD ["/ariang"]
+
+ENTRYPOINT ["/darkhttpd"]
+CMD ["/www", "--chroot", "--uid", "nobody", "--gid", "nobody", "--port", "8080"]

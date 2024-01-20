@@ -1,4 +1,0 @@
-#!/bin/sh
-
-# $PWD is frps, not frps/hooks
-. ../hooks/push

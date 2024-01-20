@@ -12,7 +12,6 @@ env:
   VERSION: ${{ github.event.inputs.version }}
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,6 +22,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log into DockerHub
         if: ${{ github.event_name != 'pull_request' && github.actor == env.DOCKERHUB_USERNAME }}
@@ -39,40 +41,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build ariang
+      - name: Build docker image
         env:
           DOCKER_REPO: "${{ github.actor }}/ariang"
+          GHCR_REPO: "ghcr.io/${{ github.actor }}/ariang"
         working-directory: ariang
         run: |
-          ./hooks/build
-
-          export DOCKER_REPO="ghcr.io/$DOCKER_REPO"
-          ./hooks/build
-
-      - name: Extract version
-        working-directory: ariang
-        run: |
-          . .env.local
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "LATEST_VERSION=$LATEST_VERSION" >> $GITHUB_ENV
-
-      - name: Push to DockerHub
-        if: ${{ github.event_name != 'pull_request' && github.actor == env.DOCKERHUB_USERNAME }}
-        working-directory: ariang
-        run: |
-          export DOCKER_REPO="${{ github.actor }}/ariang"
-          ./hooks/push
-
-      - name: Push to GitHub Packages
-        if: ${{ github.event_name != 'pull_request' }}
-        working-directory: ariang
-        run: |
-          export DOCKER_REPO="ghcr.io/${{ github.actor }}/ariang"
-          ./hooks/push
-
-      - name: Cleanup
-        run: |
-          if [ ! -z "$(docker images -q -f 'reference=${{ github.actor }}/ariang*')" ]; then
-            docker rmi $(docker images -q -f 'reference=${{ github.actor }}/ariang*')
-          fi
-          docker image prune -f
+          ./build.sh
