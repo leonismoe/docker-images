@@ -1,33 +1,17 @@
 # syntax=docker/dockerfile:1
 
-FROM --platform=$BUILDPLATFORM node:lts AS build
-
-ARG GIT_BRANCH
-
-RUN <<EOF
-    set -ex
-    if [ ! -z "$NPM_REGISTRY" ]; then
-        npm config set registry $NPM_REGISTRY
-    fi
-
-    mkdir -p /build
-    cd /build
-    git clone --depth 1 --branch $GIT_BRANCH https://github.com/mayswind/AriaNg.git
-    cd AriaNg
-    npm install
-    npm run build
-EOF
-
 FROM --platform=$BUILDPLATFORM tonistiigi/xx AS xx
 
 FROM --platform=$BUILDPLATFORM alpine:edge AS xbuild
 
 COPY --from=xx / /
 
+ARG VERSION=1.3.7 # github-releases/mayswind/AriaNg
+
 RUN <<EOF
     set -ex
-    if [ ! -z "$APK_MIRROR" ]; then
-        sed -i "s/dl-cdn.alpinelinux.org/$APK_MIRROR/g" /etc/apk/repositories
+    if [ ! -z "$ALPINE_MIRROR_HOST" ]; then
+        sed -i "s/dl-cdn.alpinelinux.org/$ALPINE_MIRROR_HOST/g" /etc/apk/repositories
     fi
 EOF
 
@@ -42,7 +26,7 @@ RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
     <<EOF
     set -ex
 
-    apk add clang git libcap lld make
+    apk add clang curl git libarchive-tools libcap lld make
 EOF
 
 RUN <<EOF
@@ -62,6 +46,15 @@ RUN <<EOF
     mkdir -p /build
     cd /build
     git clone --depth 1 https://github.com/emikulic/darkhttpd.git
+EOF
+
+RUN <<EOF
+    set -ex
+
+    mkdir -p /build/root/www
+    cd /build/root/www
+    curl -Lo /tmp/ariang.zip "https://github.com/mayswind/AriaNg/releases/download/$VERSION/AriaNg-$VERSION.zip"
+    bsdtar -xf /tmp/ariang.zip -C /build/root/www
 EOF
 
 ARG TARGETPLATFORM
@@ -84,24 +77,22 @@ RUN <<EOF
     set -ex
 
     cd /build/darkhttpd
-    make darkhttpd-static CC=xx-clang CFLAGS='-Os -D_FORTIFY_SOURCE=2 -Dstrip=true -fstack-clash-protection -fstack-protector-strong -pipe -Wall -Wextra -Werror=format-security -Werror=implicit-function-declaration -Wl,-z,defs -Wl,-z,now -Wl,-z,relro -Wl,-z,noexecstack'
-    setcap cap_net_bind_service=+ep darkhttpd-static
-    sstrip darkhttpd-static || true
-    xx-verify darkhttpd-static
+    make darkhttpd CC=xx-clang CFLAGS='-static -Os -D_FORTIFY_SOURCE=2 -Dstrip=true -fstack-clash-protection -fstack-protector-strong -pipe -Wall -Wextra -Werror=format-security -Werror=implicit-function-declaration -Wl,-z,defs -Wl,-z,now -Wl,-z,relro -Wl,-z,noexecstack'
+    setcap cap_net_bind_service=+ep darkhttpd
+    sstrip darkhttpd || true
+    xx-verify darkhttpd
 
     mkdir -p /build/root/etc
-    cp darkhttpd-static /build/root/darkhttpd
+    cp darkhttpd /build/root/darkhttpd
     echo 'nobody:x:65534:65534:nobody:/www:/darkhttpd' > /build/root/etc/passwd
     echo 'nobody:x:65534:' > /build/root/etc/group
 EOF
-
-COPY --from=build /build/AriaNg/dist /build/root/www
 
 FROM scratch
 
 COPY --from=xbuild /build/root/ /
 
-ARG VERSION
+ARG VERSION=1.3.7 # github-releases/mayswind/AriaNg
 LABEL version=${VERSION}
 
 EXPOSE 8080

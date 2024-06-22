@@ -1,0 +1,127 @@
+name: Build Docker Image
+
+on:
+  push:
+    branches:
+      - main
+  workflow_call:
+    inputs:
+      projects:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      projects:
+        description: "projects to build, comma separated"
+        required: true
+
+env:
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      projects: ${{ steps.determine.outputs.projects }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: 'blob:none'
+
+      - name: Determine projects to build
+        id: determine
+        env:
+          PROJECTS: ${{ github.event.inputs.projects }}
+        run: |
+          set -e
+
+          # https://stackoverflow.com/a/28368319
+          declare -A projects
+
+          if [ "${{ github.event_name }}" == "workflow_call" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ ! -z "$PROJECTS" ]; then
+              while read -r dir; do
+                if [ -f "$dir/subprojects.txt" ]; then
+                  while read -r line; do
+                    projects["$dir/$line"]=1
+                  done < "$dir/subprojects.txt"
+                elif [ -f "$dir/build.sh" ] || [ -f "$dir/Dockerfile" ]; then
+                  projects["$dir"]=1
+                fi
+              done <<< "$(echo -n $PROJECTS | tr ',' '\n')"
+            fi
+
+          else
+            # for file in $(git diff --name-only --diff-filter=d ${{ github.event.before }} ${{ github.event.after }}); do
+            for file in $(git diff --name-only d050f4a HEAD); do
+              dir="$(dirname $file)"
+              while [ "$dir" != "." ]; do
+                # respect `subprojects.txt`
+                if [ -f "$dir/subprojects.txt" ]; then
+                  while read -r line; do
+                    projects["$dir/$line"]=1
+                  done < "$dir/subprojects.txt"
+                  break
+
+                # otherwise look for `build.sh` or `Dockerfile`
+                elif [ -f "$dir/build.sh" ] || [ -f "$dir/Dockerfile" ]; then
+                  projects["$dir"]=1
+                  break
+                fi
+
+                dir="$(dirname $dir)"
+              done
+            done
+          fi
+
+          if [ ${#projects[@]} -eq 0 ]; then
+            echo "::error ::No available projects to build"
+            exit 1
+          fi
+
+          echo "projects=$(jq --compact-output --null-input '$ARGS.positional' --args -- "${!projects[@]}")" >> "$GITHUB_OUTPUT"
+
+  build:
+    runs-on: ubuntu-latest
+    needs: matrix
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        project: ${{ fromJson(needs.matrix.outputs.projects) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        if: ${{ github.actor == env.DOCKERHUB_USERNAME }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build ${{ matrix.project }}
+        env:
+          DOCKERHUB_NAMESPACE: "${{ env.DOCKERHUB_USERNAME }}"
+          GHCR_NAMESPACE: "ghcr.io/${{ github.actor }}"
+        run: |
+          set -e
+          if [ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]; then
+            export LATEST=1
+          fi
+          ./build-image.sh "${{ matrix.project }}"

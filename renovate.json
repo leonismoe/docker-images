@@ -1,0 +1,60 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":rebaseStalePrs",
+    ":semanticCommits"
+  ],
+  "labels": ["renovate"],
+  "rebaseWhen": "behind-base-branch",
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "pinDigest", "digest"],
+      "automerge": true
+    },
+    {
+      "matchDatasources": ["custom.alpine", "custom.alpine-community"],
+      "extractVersion": "v?(?<version>\\S+)",
+      "versioning": "regex:^(?<major>\\d+)(?:\\.(?<minor>\\d+))?(?:\\.(?<patch>\\d+))(?:[._](?<build>.+?))?(-r(?<revision>\\d+))?$",
+      "followTag": "latest"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["/Dockerfile$"],
+      "matchStringsStrategy": "any",
+      "matchStrings": [
+        "ARG (?:\\S+_)?VERSION=(?<currentValue>.*) # (?<datasource>.*?)/(?<depName>.*?)(?:\\&versioning=(?<versioning>.*?))?\\s"
+      ],
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^renovate.json"],
+      "matchStringsStrategy": "any",
+      "matchStrings": [
+        "\"defaultRegistryUrlTemplate\"\\s*:\\s*\"https://pkgs.alpinelinux.org/package/(?<currentValue>.*?)/.+?\""
+      ],
+      "extractVersionTemplate": "^v?(?<version>.*)$",
+      "depNameTemplate": "alpine",
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "customDatasources": {
+    "alpine": {
+      "defaultRegistryUrlTemplate": "https://pkgs.alpinelinux.org/package/v3.20/main/x86_64/{{packageName}}",
+      "format": "plain",
+      "transformTemplates": [
+        "( $version := releases[version ~> /^\\s*\\d+(\\.\\d+)*(_[a-zA-Z]+\\d+)?-r\\d+\\s*$/].version; { 'releases': [{ 'version': $version }], 'tags': { 'latest': $version } })"
+      ]
+    },
+    "alpine-community": {
+      "defaultRegistryUrlTemplate": "https://pkgs.alpinelinux.org/package/v3.20/community/x86_64/{{packageName}}",
+      "format": "plain",
+      "transformTemplates": [
+        "( $version := releases[version ~> /^\\s*\\d+(\\.\\d+)*(_[a-zA-Z]+\\d+)?-r\\d+\\s*$/].version; { 'releases': [{ 'version': $version }], 'tags': { 'latest': $version } })"
+      ]
+    }
+  }
+}

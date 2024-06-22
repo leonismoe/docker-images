@@ -2,7 +2,7 @@
 
 FROM --platform=$BUILDPLATFORM tonistiigi/xx AS xx
 
-FROM --platform=$BUILDPLATFORM golang AS build
+FROM --platform=$BUILDPLATFORM golang:1.22 AS build
 
 COPY --from=xx / /
 
@@ -14,11 +14,14 @@ ENV GO111MODULE=on \
     CGO_ENABLED=0 \
     LDFLAGS="-s -w"
 
-ARG GIT_BRANCH
+ARG VERSION=0.58.1 # github-releases/fatedier/frp
 
-RUN <<EOF
+RUN --mount=type=tmpfs,target=/tmp \
+    <<EOF
     set -xe
-    git clone --depth 1 --branch $GIT_BRANCH https://github.com/fatedier/frp.git $SRC_ROOT
+    mkdir -p "$SRC_ROOT"
+    curl -Lo /tmp/frp.tar.gz "https://github.com/fatedier/frp/archive/refs/tags/v${VERSION}.tar.gz"
+    tar -zxf /tmp/frp.tar.gz --strip-components=1 -C "$SRC_ROOT"
     cd $SRC_ROOT
     go mod download
 EOF
@@ -32,27 +35,32 @@ RUN <<EOF
     set -xe
     cd $SRC_ROOT
 
+    xx-go --wrap
     if [ "$TARGETARCH" = "mips" ] || [ "$TARGETARCH" = "mipsle" ]; then
         export GOMIPS=softfloat
     fi
 
+    make frps
+    strip bin/frps || true
+    xx-verify bin/frps
+    mkdir -p /build/usr/bin
+    cp bin/frps /build/usr/bin/frps
+
     mkdir -p /build/etc
-    xx-go build -trimpath -ldflags "$LDFLAGS" -o /build/frps ./cmd/frps
-    strip /build/frps || true
-    xx-verify /build/frps
     cp ./conf/frps.toml /build/etc/frps.toml
 
-    xx-go build -trimpath -ldflags "$LDFLAGS" -o /build/frp-autoconf /go/frp-autoconf.go
+    go build -trimpath -ldflags "$LDFLAGS" -o /build/frp-autoconf /go/frp-autoconf.go
     strip /build/frp-autoconf || true
     xx-verify /build/frp-autoconf
+    xx-go --unwrap
 EOF
 
 FROM scratch
 
 COPY --from=build /build/ /
 
-ARG VERSION
+ARG VERSION=0.58.1 # github-releases/fatedier/frp
 LABEL version=${VERSION}
 
 ENTRYPOINT ["/frp-autoconf"]
-CMD ["/frps", "-c", "/etc/frps.toml"]
+CMD ["/usr/bin/frps", "-c", "/etc/frps.toml"]
