@@ -54,8 +54,7 @@ jobs:
             fi
 
           else
-            # for file in $(git diff --name-only --diff-filter=d ${{ github.event.before }} ${{ github.event.after }}); do
-            for file in $(git diff --name-only d050f4a HEAD); do
+            for file in $(git diff --name-only --diff-filter=d ${{ github.event.before }} ${{ github.event.after }}); do
               dir="$(dirname $file)"
               while [ "$dir" != "." ]; do
                 # respect `subprojects.txt`
