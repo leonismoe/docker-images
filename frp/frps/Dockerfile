@@ -14,7 +14,7 @@ ENV GO111MODULE=on \
     CGO_ENABLED=0 \
     LDFLAGS="-s -w"
 
-ARG VERSION=0.60.0 # github-releases/fatedier/frp
+ARG VERSION=0.61.0 # github-releases/fatedier/frp
 
 RUN --mount=type=tmpfs,target=/tmp \
     <<EOF
@@ -59,7 +59,7 @@ FROM scratch
 
 COPY --from=build /build/ /
 
-ARG VERSION=0.60.0 # github-releases/fatedier/frp
+ARG VERSION=0.61.0 # github-releases/fatedier/frp
 LABEL version=${VERSION}
 
 ENTRYPOINT ["/frp-autoconf"]
