@@ -6,7 +6,7 @@ FROM --platform=$BUILDPLATFORM alpine:edge AS xbuild
 
 COPY --from=xx / /
 
-ARG VERSION=1.3.7 # github-releases/mayswind/AriaNg
+ARG VERSION=1.3.8 # github-releases/mayswind/AriaNg
 
 RUN <<EOF
     set -ex
@@ -92,7 +92,7 @@ FROM scratch
 
 COPY --from=xbuild /build/root/ /
 
-ARG VERSION=1.3.7 # github-releases/mayswind/AriaNg
+ARG VERSION=1.3.8 # github-releases/mayswind/AriaNg
 LABEL version=${VERSION}
 
 EXPOSE 8080
