@@ -43,14 +43,14 @@
   ],
   "customDatasources": {
     "alpine": {
-      "defaultRegistryUrlTemplate": "https://pkgs.alpinelinux.org/package/3.21/main/x86_64/{{packageName}}",
+      "defaultRegistryUrlTemplate": "https://pkgs.alpinelinux.org/package/3.22/main/x86_64/{{packageName}}",
       "format": "plain",
       "transformTemplates": [
         "( $version := releases[version ~> /^\\s*\\d+(\\.\\d+)*(_[a-zA-Z]+\\d+)?-r\\d+\\s*$/].version; { 'releases': [{ 'version': $version }], 'tags': { 'latest': $version } })"
       ]
     },
     "alpine-community": {
-      "defaultRegistryUrlTemplate": "https://pkgs.alpinelinux.org/package/3.21/community/x86_64/{{packageName}}",
+      "defaultRegistryUrlTemplate": "https://pkgs.alpinelinux.org/package/3.22/community/x86_64/{{packageName}}",
       "format": "plain",
       "transformTemplates": [
         "( $version := releases[version ~> /^\\s*\\d+(\\.\\d+)*(_[a-zA-Z]+\\d+)?-r\\d+\\s*$/].version; { 'releases': [{ 'version': $version }], 'tags': { 'latest': $version } })"
